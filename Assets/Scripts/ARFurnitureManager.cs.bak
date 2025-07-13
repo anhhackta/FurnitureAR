@@ -1,0 +1,973 @@
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+using System.Collections.Generic;
+
+#if UNITY_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
+
+#if XR_INTERACTION_TOOLKIT_PRESENT
+using UnityEngine.XR.Interaction.Toolkit.AR.Inputs;
+using UnityEngine.XR.Interaction.Toolkit.Inputs.Readers;
+using UnityEngine.XR.Interaction.Toolkit.Interactors;
+using UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets;
+using UnityEngine.XR.Interaction.Toolkit.Samples.ARStarterAssets;
+#endif
+
+/// <summary>
+/// Enhanced AR Furniture Manager that integrates with AR Foundation and manages furniture placement, 
+/// selection, and UI interactions.
+/// </summary>
+public class ARFurnitureManager : MonoBehaviour
+{
+    [Header("AR Foundation Integration")]
+    [SerializeField]
+    [Tooltip("Reference to AR Sample Menu Manager")]
+    ARSampleMenuManager m_ARMenuManager;
+
+    /// <summary>
+    /// Reference to AR Sample Menu Manager
+    /// </summary>
+    public ARSampleMenuManager arMenuManager
+    {
+        get => m_ARMenuManager;
+        set => m_ARMenuManager = value;
+    }
+
+    [Header("Database & Core")]
+    [SerializeField]
+    [Tooltip("Database containing all furniture items")]
+    FurnitureDatabase m_FurnitureDatabase;
+
+    /// <summary>
+    /// Database containing all furniture items
+    /// </summary>
+    public FurnitureDatabase furnitureDatabase
+    {
+        get => m_FurnitureDatabase;
+        set => m_FurnitureDatabase = value;
+    }
+
+    [SerializeField]
+    [Tooltip("Transform to parent spawned objects")]
+    Transform m_GroundPlaneStage;
+
+    /// <summary>
+    /// Transform to parent spawned objects
+    /// </summary>
+    public Transform groundPlaneStage
+    {
+        get => m_GroundPlaneStage;
+        set => m_GroundPlaneStage = value;
+    }
+
+    [Header("UI Components - Your Canvas Structure")]
+    [SerializeField]
+    [Tooltip("PanelVatPham - Main furniture panel (replaces CreateButton functionality)")]
+    GameObject m_PanelVatPham;
+
+    /// <summary>
+    /// PanelVatPham - Main furniture panel
+    /// </summary>
+    public GameObject panelVatPham
+    {
+        get => m_PanelVatPham;
+        set => m_PanelVatPham = value;
+    }
+
+    [SerializeField]
+    [Tooltip("MenuVatPham - Container for furniture menu")]
+    GameObject m_MenuVatPham;
+
+    /// <summary>
+    /// MenuVatPham - Container for furniture menu
+    /// </summary>
+    public GameObject menuVatPham
+    {
+        get => m_MenuVatPham;
+        set => m_MenuVatPham = value;
+    }
+
+    [SerializeField]
+    [Tooltip("Content - Parent for furniture item buttons")]
+    GameObject m_ContentParent;
+
+    /// <summary>
+    /// Content - Parent for furniture item buttons
+    /// </summary>
+    public GameObject contentParent
+    {
+        get => m_ContentParent;
+        set => m_ContentParent = value;
+    }
+
+    [SerializeField]
+    [Tooltip("PanelThongSo - Info panel (shows when object selected)")]
+    GameObject m_PanelThongSo;
+
+    /// <summary>
+    /// PanelThongSo - Info panel
+    /// </summary>
+    public GameObject panelThongSo
+    {
+        get => m_PanelThongSo;
+        set => m_PanelThongSo = value;
+    }
+
+    [SerializeField]
+    [Tooltip("TextDoVat - Text component to display selected item name")]
+    Text m_TextDoVat;
+
+    /// <summary>
+    /// TextDoVat - Text component to display selected item name
+    /// </summary>
+    public Text textDoVat
+    {
+        get => m_TextDoVat;
+        set => m_TextDoVat = value;
+    }
+
+    [Header("UI Components - Legacy (for compatibility)")]
+    [SerializeField]
+    [Tooltip("Panel containing furniture list")]
+    GameObject m_FurnitureListPanel;
+
+    /// <summary>
+    /// Panel containing furniture list
+    /// </summary>
+    public GameObject furnitureListPanel
+    {
+        get => m_FurnitureListPanel;
+        set => m_FurnitureListPanel = value;
+    }
+
+    [SerializeField]
+    [Tooltip("Content container for furniture buttons")]
+    GameObject m_FurnitureListContent;
+
+    /// <summary>
+    /// Content container for furniture buttons
+    /// </summary>
+    public GameObject furnitureListContent
+    {
+        get => m_FurnitureListContent;
+        set => m_FurnitureListContent = value;
+    }
+
+    [SerializeField]
+    [Tooltip("Panel showing object info and color picker")]
+    GameObject m_InfoPanel;
+
+    /// <summary>
+    /// Panel showing object info and color picker
+    /// </summary>
+    public GameObject infoPanel
+    {
+        get => m_InfoPanel;
+        set => m_InfoPanel = value;
+    }
+
+    [Header("UI Buttons - Your Canvas Structure")]
+    [SerializeField]
+    [Tooltip("ButtonDel - Delete button in PanelThongSo (replaces demo DeleteButton)")]
+    Button m_ButtonDel;
+
+    /// <summary>
+    /// ButtonDel - Delete button in PanelThongSo
+    /// </summary>
+    public Button buttonDel
+    {
+        get => m_ButtonDel;
+        set => m_ButtonDel = value;
+    }
+
+    [SerializeField]
+    [Tooltip("ButtonClose - Close button for PanelThongSo")]
+    Button m_ButtonClose;
+
+    /// <summary>
+    /// ButtonClose - Close button for PanelThongSo
+    /// </summary>
+    public Button buttonClose
+    {
+        get => m_ButtonClose;
+        set => m_ButtonClose = value;
+    }
+
+    [SerializeField]
+    [Tooltip("ButtonUI - Toggle UI button")]
+    Button m_ButtonUI;
+
+    /// <summary>
+    /// ButtonUI - Toggle UI button
+    /// </summary>
+    public Button buttonUI
+    {
+        get => m_ButtonUI;
+        set => m_ButtonUI = value;
+    }
+
+    [Header("UI Buttons - Legacy (for compatibility)")]
+    [SerializeField]
+    [Tooltip("Button to toggle UI visibility")]
+    Button m_ToggleUIButton;
+
+    /// <summary>
+    /// Button to toggle UI visibility
+    /// </summary>
+    public Button toggleUIButton
+    {
+        get => m_ToggleUIButton;
+        set => m_ToggleUIButton = value;
+    }
+
+    [SerializeField]
+    [Tooltip("Button to close info panel")]
+    Button m_CloseInfoButton;
+
+    /// <summary>
+    /// Button to close info panel
+    /// </summary>
+    public Button closeInfoButton
+    {
+        get => m_CloseInfoButton;
+        set => m_CloseInfoButton = value;
+    }
+
+    [SerializeField]
+    [Tooltip("Button to delete selected object")]
+    Button m_DeleteButton;
+
+    /// <summary>
+    /// Button to delete selected object
+    /// </summary>
+    public Button deleteButton
+    {
+        get => m_DeleteButton;
+        set => m_DeleteButton = value;
+    }
+
+    [Header("Prefabs & Components")]
+    [SerializeField]
+    [Tooltip("Prefab for furniture selection buttons")]
+    GameObject m_FurnitureButtonPrefab;
+
+    /// <summary>
+    /// Prefab for furniture selection buttons
+    /// </summary>
+    public GameObject furnitureButtonPrefab
+    {
+        get => m_FurnitureButtonPrefab;
+        set => m_FurnitureButtonPrefab = value;
+    }
+
+    [SerializeField]
+    [Tooltip("Text component for item name display")]
+    Text m_ItemNameText;
+
+    /// <summary>
+    /// Text component for item name display
+    /// </summary>
+    public Text itemNameText
+    {
+        get => m_ItemNameText;
+        set => m_ItemNameText = value;
+    }
+
+    [SerializeField]
+    [Tooltip("Color picker component")]
+    FlexibleColorPicker m_ColorPicker;
+
+    /// <summary>
+    /// Color picker component
+    /// </summary>
+    public FlexibleColorPicker colorPicker
+    {
+        get => m_ColorPicker;
+        set => m_ColorPicker = value;
+    }
+
+    // Input handling
+    [SerializeField]
+    XRInputValueReader<Vector2> m_TapStartPositionInput = new XRInputValueReader<Vector2>("Tap Start Position");
+
+    /// <summary>
+    /// Input to use for the screen tap start position.
+    /// </summary>
+    public XRInputValueReader<Vector2> tapStartPositionInput
+    {
+        get => m_TapStartPositionInput;
+        set => XRInputReaderUtility.SetInputProperty(ref m_TapStartPositionInput, value, this);
+    }
+
+    // Private variables
+    private List<GameObject> m_PlacedObjects = new List<GameObject>();
+    private GameObject m_SelectedObject;
+    private bool m_IsUIVisible = true;
+    private int m_SelectedFurnitureIndex = -1;
+
+    void OnEnable()
+    {
+        m_TapStartPositionInput.EnableDirectActionIfModeUsed();
+        
+        // Setup button listeners
+        if (m_ToggleUIButton != null)
+            m_ToggleUIButton.onClick.AddListener(ToggleUI);
+        if (m_CloseInfoButton != null)
+            m_CloseInfoButton.onClick.AddListener(CloseInfoPanel);
+        if (m_DeleteButton != null)
+            m_DeleteButton.onClick.AddListener(DeleteObject);
+            
+        // Color picker listener
+        if (m_ColorPicker != null)
+            m_ColorPicker.onColorChange.AddListener(OnChangeColor);
+    }
+
+    void OnDisable()
+    {
+        m_TapStartPositionInput.DisableDirectActionIfModeUsed();
+        
+        // Remove button listeners
+        if (m_ToggleUIButton != null)
+            m_ToggleUIButton.onClick.RemoveListener(ToggleUI);
+        if (m_CloseInfoButton != null)
+            m_CloseInfoButton.onClick.RemoveListener(CloseInfoPanel);
+        if (m_DeleteButton != null)
+            m_DeleteButton.onClick.RemoveListener(DeleteObject);
+            
+        // Remove color picker listener
+        if (m_ColorPicker != null)
+            m_ColorPicker.onColorChange.RemoveListener(OnChangeColor);
+    }
+
+    void Start()
+    {
+        // Validate components
+        if (m_FurnitureDatabase == null || m_FurnitureDatabase.furnitureItems.Length == 0)
+        {
+            Debug.LogError("FurnitureDatabase is not assigned or empty!", this);
+            return;
+        }
+
+        if (m_ColorPicker == null)
+        {
+            Debug.LogError("FlexibleColorPicker is not assigned!", this);
+            return;
+        }
+        
+        // Auto-assign UI components from your Canvas structure
+        AutoAssignUIComponents();
+        
+        // Validate critical UI components
+        GameObject contentContainer = GetContentContainer();
+        if (contentContainer == null)
+        {
+            Debug.LogError("Content container not found! Assign either contentParent or furnitureListContent!", this);
+            return;
+        }
+
+        // Initialize UI
+        PopulateFurnitureList();
+        
+        // Setup info panel
+        GameObject infoContainer = GetInfoPanel();
+        if (infoContainer != null)
+            infoContainer.SetActive(false);
+            
+        // Find AR Menu Manager if not assigned
+        if (m_ARMenuManager == null)
+            m_ARMenuManager = FindFirstObjectByType<ARSampleMenuManager>();
+    }
+
+    /// <summary>
+    /// Auto-assign UI components if not manually assigned
+    /// </summary>
+    void AutoAssignUIComponents()
+    {
+        // Try to find PanelVatPham if not assigned
+        if (m_PanelVatPham == null)
+            m_PanelVatPham = GameObject.Find("PanelVatPham");
+            
+        if (m_PanelVatPham != null)
+        {
+            // Find MenuVatPham
+            if (m_MenuVatPham == null)
+                m_MenuVatPham = FindChildByName(m_PanelVatPham.transform, "MenuVatPham");
+                
+            // Find Content
+            if (m_ContentParent == null && m_MenuVatPham != null)
+                m_ContentParent = FindChildByName(m_MenuVatPham.transform, "Content");
+                
+            // Find PanelThongSo
+            if (m_PanelThongSo == null)
+                m_PanelThongSo = FindChildByName(m_PanelVatPham.transform, "PanelThongSo");
+                
+            if (m_PanelThongSo != null)
+            {
+                // Find Panel inside PanelThongSo
+                Transform panelTransform = FindChildByName(m_PanelThongSo.transform, "Panel");
+                if (panelTransform != null)
+                {
+                    // Find MenuThongSo
+                    Transform menuThongSoTransform = FindChildByName(panelTransform, "MenuThongSo");
+                    if (menuThongSoTransform != null)
+                    {
+                        // Find TextDoVat
+                        if (m_TextDoVat == null)
+                        {
+                            Transform textTransform = FindChildByName(menuThongSoTransform, "TextDoVat");
+                            if (textTransform != null)
+                                m_TextDoVat = textTransform.GetComponent<Text>();
+                        }
+                        
+                        // Find ButtonDel
+                        if (m_ButtonDel == null)
+                        {
+                            Transform buttonTransform = FindChildByName(menuThongSoTransform, "ButtonDel");
+                            if (buttonTransform != null)
+                                m_ButtonDel = buttonTransform.GetComponent<Button>();
+                        }
+                        
+                        // Find ButtonClose
+                        if (m_ButtonClose == null)
+                        {
+                            Transform buttonTransform = FindChildByName(menuThongSoTransform, "ButtonClose");
+                            if (buttonTransform != null)
+                                m_ButtonClose = buttonTransform.GetComponent<Button>();
+                        }
+                    }
+                    
+                    // Find FlexibleColorPicker
+                    if (m_ColorPicker == null)
+                    {
+                        Transform colorPickerTransform = FindChildByName(panelTransform, "FlexibleColorPicker");
+                        if (colorPickerTransform != null)
+                            m_ColorPicker = colorPickerTransform.GetComponent<FlexibleColorPicker>();
+                    }
+                }
+            }
+            
+            // Find ButtonUI
+            if (m_ButtonUI == null)
+            {
+                Transform buttonTransform = FindChildByName(m_PanelVatPham.transform, "ButtonUI");
+                if (buttonTransform != null)
+                    m_ButtonUI = buttonTransform.GetComponent<Button>();
+            }
+        }
+        
+        // Setup button listeners
+        SetupButtonListeners();
+    }
+
+    /// <summary>
+    /// Setup button listeners for your UI
+    /// </summary>
+    void SetupButtonListeners()
+    {
+        // ButtonDel (replaces demo delete button)
+        if (m_ButtonDel != null)
+            m_ButtonDel.onClick.AddListener(DeleteSelectedObject);
+        else if (m_DeleteButton != null)
+            m_DeleteButton.onClick.AddListener(DeleteSelectedObject);
+            
+        // ButtonClose (close info panel)
+        if (m_ButtonClose != null)
+            m_ButtonClose.onClick.AddListener(CloseInfoPanel);
+        else if (m_CloseInfoButton != null)
+            m_CloseInfoButton.onClick.AddListener(CloseInfoPanel);
+            
+        // ButtonUI (toggle UI)
+        if (m_ButtonUI != null)
+            m_ButtonUI.onClick.AddListener(ToggleUI);
+        else if (m_ToggleUIButton != null)
+            m_ToggleUIButton.onClick.AddListener(ToggleUI);
+    }
+
+    /// <summary>
+    /// Helper method to find child by name recursively
+    /// </summary>
+    Transform FindChildByName(Transform parent, string name)
+    {
+        if (parent.name == name)
+            return parent;
+            
+        foreach (Transform child in parent)
+        {
+            Transform result = FindChildByName(child, name);
+            if (result != null)
+                return result;
+        }
+        return null;
+    }
+
+    void Update()
+    {
+        HandleTouchInput();
+        HandleMouseInputForEditor();
+    }
+
+    #region Input Handling
+    void HandleTouchInput()
+    {
+        if (Touchscreen.current != null && Touchscreen.current.touches.Count > 0)
+        {
+            var primaryTouch = Touchscreen.current.touches[0];
+            
+            // Single touch for placing/selecting objects
+            if (Touchscreen.current.touches.Count == 1 && primaryTouch.phase.ReadValue() == UnityEngine.InputSystem.TouchPhase.Began)
+            {
+                Vector2 touchPosition = primaryTouch.position.ReadValue();
+                
+                // Check if touch is over UI
+                if (EventSystem.current.IsPointerOverGameObject((int)primaryTouch.touchId.ReadValue()))
+                    return;
+                
+                Ray ray = Camera.main.ScreenPointToRay(touchPosition);
+                RaycastHit hit;
+                
+                if (Physics.Raycast(ray, out hit))
+                {
+                    if (hit.transform.CompareTag("GroundPlane") && m_SelectedFurnitureIndex >= 0)
+                    {
+                        SpawnFurniture(hit.point);
+                    }
+                    else if (hit.transform.CompareTag("Furniture"))
+                    {
+                        SelectPlacedObject(hit.transform.gameObject);
+                    }
+                }
+            }
+            
+            // Two finger gestures for selected object
+            if (m_SelectedObject != null && Touchscreen.current.touches.Count == 2)
+            {
+                HandleTwoFingerGestures();
+            }
+        }
+    }
+    
+    void HandleMouseInputForEditor()
+    {
+        #if UNITY_EDITOR
+        if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame && !EventSystem.current.IsPointerOverGameObject())
+        {
+            Vector2 mousePosition = Mouse.current.position.ReadValue();
+            Ray ray = Camera.main.ScreenPointToRay(mousePosition);
+            RaycastHit hit;
+            
+            if (Physics.Raycast(ray, out hit))
+            {
+                if (hit.transform.CompareTag("GroundPlane") && m_SelectedFurnitureIndex >= 0)
+                {
+                    SpawnFurniture(hit.point);
+                }
+                else if (hit.transform.CompareTag("Furniture"))
+                {
+                    SelectPlacedObject(hit.transform.gameObject);
+                }
+            }
+        }
+        #endif
+    }
+
+    void HandleTwoFingerGestures()
+    {
+        if (m_SelectedObject == null) return;
+        
+        var touch0 = Touchscreen.current.touches[0];
+        var touch1 = Touchscreen.current.touches[1];
+        
+        Vector2 touch0Pos = touch0.position.ReadValue();
+        Vector2 touch1Pos = touch1.position.ReadValue();
+        Vector2 touch0Delta = touch0.delta.ReadValue();
+        Vector2 touch1Delta = touch1.delta.ReadValue();
+        
+        // Rotation
+        if (touch0.phase.ReadValue() == UnityEngine.InputSystem.TouchPhase.Moved && 
+            touch1.phase.ReadValue() == UnityEngine.InputSystem.TouchPhase.Moved)
+        {
+            float rotationSpeed = (touch0Delta.x - touch1Delta.x) * 0.1f;
+            m_SelectedObject.transform.Rotate(Vector3.up, rotationSpeed);
+        }
+        
+        // Scaling
+        float currentDistance = Vector2.Distance(touch0Pos, touch1Pos);
+        float previousDistance = Vector2.Distance(touch0Pos - touch0Delta, touch1Pos - touch1Delta);
+        
+        if (currentDistance != 0 && previousDistance != 0)
+        {
+            float scaleFactor = currentDistance / previousDistance;
+            Vector3 newScale = m_SelectedObject.transform.localScale * scaleFactor;
+            newScale = Vector3.Max(Vector3.one * 0.5f, Vector3.Min(newScale, Vector3.one * 2f));
+            m_SelectedObject.transform.localScale = newScale;
+        }
+    }
+    #endregion
+
+    #region Furniture Management
+    void SpawnFurniture(Vector3 position)
+    {
+        if (m_SelectedFurnitureIndex < 0 || m_SelectedFurnitureIndex >= m_FurnitureDatabase.furnitureItems.Length)
+            return;
+            
+        Transform parent = m_GroundPlaneStage != null ? m_GroundPlaneStage : transform;
+        GameObject newObject = Instantiate(m_FurnitureDatabase.furnitureItems[m_SelectedFurnitureIndex].prefab, position, Quaternion.identity, parent);
+        newObject.tag = "Furniture";
+        
+        if (newObject.GetComponent<Collider>() == null)
+            newObject.AddComponent<BoxCollider>();
+        
+        m_PlacedObjects.Add(newObject);
+        SelectPlacedObject(newObject);
+        
+        // Update AR Menu Manager's object spawner if needed
+        if (m_ARMenuManager != null && m_ARMenuManager.objectSpawner != null)
+        {
+            // Add to object spawner's tracking if necessary
+        }
+    }
+
+    void PopulateFurnitureList()
+    {
+        GameObject contentContainer = GetContentContainer();
+        if (contentContainer == null) 
+        {
+            Debug.LogError("Content container not found!", this);
+            return;
+        }
+        
+        Transform contentTransform = contentContainer.transform;
+        
+        // Clear existing buttons
+        foreach (Transform child in contentTransform)
+            Destroy(child.gameObject);
+
+        // Create furniture buttons
+        for (int i = 0; i < m_FurnitureDatabase.furnitureItems.Length; i++)
+        {
+            int index = i;
+            GameObject buttonObj = Instantiate(m_FurnitureButtonPrefab, contentTransform);
+            
+            Transform textTransform = buttonObj.transform.Find("TextDoVat");
+            Transform imageTransform = buttonObj.transform.Find("ImageDoVat");
+            
+            Text buttonText = textTransform?.GetComponent<Text>();
+            UnityEngine.UI.Image buttonImage = imageTransform?.GetComponent<UnityEngine.UI.Image>();
+            
+            if (buttonText == null || buttonImage == null)
+            {
+                Debug.LogError($"FurnitureButtonPrefab missing required components at index {i}!", this);
+                continue;
+            }
+            
+            buttonText.text = m_FurnitureDatabase.furnitureItems[index].name;
+            
+            if (m_FurnitureDatabase.furnitureItems[index].thumbnail != null)
+                buttonImage.sprite = m_FurnitureDatabase.furnitureItems[index].thumbnail;
+            
+            Button button = buttonObj.GetComponent<Button>();
+            if (button != null)
+                button.onClick.AddListener(() => SelectFurniture(index));
+        }
+    }
+
+    /// <summary>
+    /// Get the content container (prefer your structure, fallback to legacy)
+    /// </summary>
+    GameObject GetContentContainer()
+    {
+        if (m_ContentParent != null)
+            return m_ContentParent;
+        if (m_FurnitureListContent != null)
+            return m_FurnitureListContent;
+        return null;
+    }
+
+    /// <summary>
+    /// Get the info panel (prefer your structure, fallback to legacy)
+    /// </summary>
+    GameObject GetInfoPanel()
+    {
+        if (m_PanelThongSo != null)
+            return m_PanelThongSo;
+        if (m_InfoPanel != null)
+            return m_InfoPanel;
+        return null;
+    }
+
+    /// <summary>
+    /// Get the name text component (prefer your structure, fallback to legacy)
+    /// </summary>
+    Text GetNameText()
+    {
+        if (m_TextDoVat != null)
+            return m_TextDoVat;
+        if (m_ItemNameText != null)
+            return m_ItemNameText;
+        return null;
+    }
+
+    public void SelectFurniture(int index)
+    {
+        if (index < 0 || index >= m_FurnitureDatabase.furnitureItems.Length)
+            return;
+            
+        m_SelectedFurnitureIndex = index;
+        m_SelectedObject = null;
+        
+        // Update AR Menu Manager's object spawner
+        if (m_ARMenuManager != null && m_ARMenuManager.objectSpawner != null)
+        {
+            if (index < m_ARMenuManager.objectSpawner.objectPrefabs.Count)
+            {
+                m_ARMenuManager.objectSpawner.spawnOptionIndex = index;
+            }
+        }
+        
+        GameObject infoPanel = GetInfoPanel();
+        if (infoPanel != null)
+            infoPanel.SetActive(true);
+            
+        // Display item name in TextDoVat (prefer) or fallback to legacy
+        Text nameText = GetNameText();
+        if (nameText != null)
+            nameText.text = m_FurnitureDatabase.furnitureItems[index].name;
+            
+        if (m_ColorPicker != null && m_FurnitureDatabase.furnitureItems[index].availableMaterials.Length > 0)
+            m_ColorPicker.color = m_FurnitureDatabase.furnitureItems[index].availableMaterials[0].color;
+            
+        HighlightFurnitureButton(index);
+    }
+
+    public void SelectPlacedObject(GameObject obj)
+    {
+        m_SelectedObject = obj;
+        m_SelectedFurnitureIndex = FindFurnitureIndex(obj);
+        
+        GameObject infoPanel = GetInfoPanel();
+        if (infoPanel != null)
+            infoPanel.SetActive(true);
+            
+        // Display object name in TextDoVat (prefer) or fallback to legacy
+        Text nameText = GetNameText();
+        if (nameText != null)
+            nameText.text = obj.name.Replace("(Clone)", "").Trim();
+            
+        if (m_ColorPicker != null)
+        {
+            Renderer renderer = obj.GetComponent<Renderer>();
+            if (renderer != null)
+                m_ColorPicker.color = renderer.material.color;
+        }
+        
+        HighlightFurnitureButton(m_SelectedFurnitureIndex);
+    }
+
+    public void OnChangeColor(Color color)
+    {
+        if (m_SelectedObject != null)
+        {
+            Renderer renderer = m_SelectedObject.GetComponent<Renderer>();
+            if (renderer == null) return;
+            
+            int index = m_SelectedFurnitureIndex >= 0 ? m_SelectedFurnitureIndex : FindFurnitureIndex(m_SelectedObject);
+            if (index >= 0 && index < m_FurnitureDatabase.furnitureItems.Length)
+            {
+                Material[] materials = m_FurnitureDatabase.furnitureItems[index].availableMaterials;
+                if (materials.Length == 0) return;
+                
+                Material closestMaterial = materials[0];
+                float minDistance = float.MaxValue;
+                
+                foreach (Material mat in materials)
+                {
+                    float distance = Vector3.Distance(new Vector3(color.r, color.g, color.b), new Vector3(mat.color.r, mat.color.g, mat.color.b));
+                    if (distance < minDistance)
+                    {
+                        minDistance = distance;
+                        closestMaterial = mat;
+                    }
+                }
+                renderer.material = closestMaterial;
+            }
+        }
+    }
+
+    void HighlightFurnitureButton(int index)
+    {
+        GameObject contentContainer = GetContentContainer();
+        if (contentContainer == null) return;
+        
+        Transform contentTransform = contentContainer.transform;
+        
+        foreach (Transform button in contentTransform)
+        {
+            UnityEngine.UI.Image img = button.GetComponent<UnityEngine.UI.Image>();
+            if (img != null)
+                img.color = index == button.GetSiblingIndex() ? Color.yellow : Color.white;
+        }
+    }
+
+    int FindFurnitureIndex(GameObject obj)
+    {
+        for (int i = 0; i < m_FurnitureDatabase.furnitureItems.Length; i++)
+        {
+            if (m_FurnitureDatabase.furnitureItems[i].prefab.name == obj.name.Replace("(Clone)", "").Trim())
+                return i;
+        }
+        return -1;
+    }
+
+    public void DeleteObject()
+    {
+        if (m_SelectedObject != null)
+        {
+            m_PlacedObjects.Remove(m_SelectedObject);
+            Destroy(m_SelectedObject);
+            m_SelectedObject = null;
+            GameObject infoPanel = GetInfoPanel();
+            if (infoPanel != null)
+                infoPanel.SetActive(false);
+        }
+    }
+
+    /// <summary>
+    /// Delete the currently selected object (alias for DeleteObject)
+    /// </summary>
+    public void DeleteSelectedObject()
+    {
+        DeleteObject();
+    }
+    #endregion
+
+    #region UI Management
+    public void ToggleUI()
+    {
+        // Use PanelVatPham if available, fallback to legacy
+        GameObject mainPanel = m_PanelVatPham != null ? m_PanelVatPham : m_FurnitureListPanel;
+        if (mainPanel == null) return;
+
+        GameObject infoPanel = GetInfoPanel();
+        bool wasInfoPanelVisible = infoPanel != null && infoPanel.activeSelf;
+        m_IsUIVisible = !m_IsUIVisible;
+
+        // Try SetActive first
+        mainPanel.SetActive(m_IsUIVisible);
+        
+        // Fallback to CanvasGroup if SetActive fails
+        if (mainPanel.activeSelf != m_IsUIVisible)
+        {
+            CanvasGroup cg = mainPanel.GetComponent<CanvasGroup>();
+            if (cg == null)
+                cg = mainPanel.AddComponent<CanvasGroup>();
+            
+            mainPanel.SetActive(true);
+            
+            if (m_IsUIVisible)
+            {
+                cg.alpha = 1f;
+                cg.interactable = true;
+                cg.blocksRaycasts = true;
+            }
+            else
+            {
+                cg.alpha = 0f;
+                cg.interactable = false;
+                cg.blocksRaycasts = false;
+            }
+        }
+
+        // Handle InfoPanel
+        if (infoPanel != null)
+        {
+            if (m_IsUIVisible && wasInfoPanelVisible)
+                infoPanel.SetActive(true);
+            else if (!m_IsUIVisible)
+                infoPanel.SetActive(false);
+        }
+    }
+
+    public void CloseInfoPanel()
+    {
+        GameObject infoPanel = GetInfoPanel();
+        if (infoPanel != null)
+            infoPanel.SetActive(false);
+            
+        m_SelectedObject = null;
+        m_SelectedFurnitureIndex = -1;
+        
+        GameObject contentContainer = GetContentContainer();
+        if (contentContainer != null)
+        {
+            Transform contentTransform = contentContainer.transform;
+            foreach (Transform button in contentTransform)
+            {
+                UnityEngine.UI.Image img = button.GetComponent<UnityEngine.UI.Image>();
+                if (img != null)
+                    img.color = Color.white;
+            }
+        }
+    }
+    #endregion
+
+    #region Public Methods for AR Integration
+    /// <summary>
+    /// Called when AR Menu Manager creates an object
+    /// </summary>
+    /// <param name="spawnedObject">The spawned object</param>
+    public void OnObjectSpawned(GameObject spawnedObject)
+    {
+        if (spawnedObject != null)
+        {
+            spawnedObject.tag = "Furniture";
+            if (spawnedObject.GetComponent<Collider>() == null)
+                spawnedObject.AddComponent<BoxCollider>();
+                
+            m_PlacedObjects.Add(spawnedObject);
+            SelectPlacedObject(spawnedObject);
+        }
+    }
+
+    /// <summary>
+    /// Clear all placed objects
+    /// </summary>
+    public void ClearAllObjects()
+    {
+        foreach (GameObject obj in m_PlacedObjects)
+        {
+            if (obj != null)
+                Destroy(obj);
+        }
+        m_PlacedObjects.Clear();
+        
+        m_SelectedObject = null;
+        GameObject infoPanel = GetInfoPanel();
+        if (infoPanel != null)
+            infoPanel.SetActive(false);
+    }
+
+    /// <summary>
+    /// Get list of all placed objects
+    /// </summary>
+    /// <returns>List of placed GameObjects</returns>
+    public List<GameObject> GetPlacedObjects()
+    {
+        // Remove null objects from list
+        m_PlacedObjects.RemoveAll(obj => obj == null);
+        return new List<GameObject>(m_PlacedObjects);
+    }
+
+    /// <summary>
+    /// Set the furniture database
+    /// </summary>
+    /// <param name="database">New furniture database</param>
+    public void SetFurnitureDatabase(FurnitureDatabase database)
+    {
+        m_FurnitureDatabase = database;
+        if (database != null)
+            PopulateFurnitureList();
+    }
+    #endregion
+}

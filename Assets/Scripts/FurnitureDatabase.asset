@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fdef095f244405d45922f6d6eafed4a2, type: 3}
+  m_Name: FurnitureDatabase
+  m_EditorClassIdentifier: 
+  furnitureItems:
+  - name: Sofa
+    prefab: {fileID: 7887023390411681494, guid: 3b29ad392f2b08c4ca8824132ea24cad,
+      type: 3}
+    availableMaterials:
+    - {fileID: 2100000, guid: edc1ba992ca47e242af57407d4ca6dfa, type: 2}
+    thumbnail: {fileID: 21300000, guid: df66f9fb23ce4464dadec09736ab72f8, type: 3}
+  - name: Laptop
+    prefab: {fileID: 526713908794965143, guid: aa5293d990cd6ce478b620d6f9f0129c, type: 3}
+    availableMaterials:
+    - {fileID: 2100000, guid: 5427bbc3ae3c6db489be788094b1f552, type: 2}
+    thumbnail: {fileID: 21300000, guid: 5ab606036be83964ebf78d5fb74cc575, type: 3}
+  - name: "B\xE0n L\xE0m Vi\u1EC7c"
+    prefab: {fileID: 745103605128887052, guid: 87d215a69cec7c94497bdc3bad58de5f, type: 3}
+    availableMaterials:
+    - {fileID: 2100000, guid: d8c1d22e38a64814880431c3093e3004, type: 2}
+    thumbnail: {fileID: 21300000, guid: dbc5a275be125ff46818a9135e213841, type: 3}
+  - name: "B\xE0n kh\xE1ch"
+    prefab: {fileID: 4638250451829153214, guid: fa1d0c071bca17c4eaf61f55d19e1f13,
+      type: 3}
+    availableMaterials:
+    - {fileID: 2100000, guid: dd9e9ebd385521f43b25011d73a8be35, type: 2}
+    thumbnail: {fileID: 21300000, guid: 821d0ccb8516567459344451cbbe71db, type: 3}
+  - name: "Gh\u1EBF Gaming"
+    prefab: {fileID: 1416781103481755618, guid: 9db369eb811457947b5cadf8d906147d,
+      type: 3}
+    availableMaterials:
+    - {fileID: 2100000, guid: 79ed9f4e2dfb5c244bd84e13e2eb3652, type: 2}
+    thumbnail: {fileID: 21300000, guid: 76158b5ca2e9fca4886213619c640c3e, type: 3}
+  - name: "Gh\u1EBF Mini"
+    prefab: {fileID: 3963120301452563543, guid: bf7121d5c1a594a45862ec37faab7953,
+      type: 3}
+    availableMaterials:
+    - {fileID: 2100000, guid: 4678a6a8ad2fbd34991ff7c2aa758408, type: 2}
+    thumbnail: {fileID: 21300000, guid: a610c752b76575242ad7658428889a70, type: 3}
+  - name: "C\xE2y C\u1EA3nh 1"
+    prefab: {fileID: 9154906001987415323, guid: 0b9154d452cd93344bf37a7f61c43d07,
+      type: 3}
+    availableMaterials:
+    - {fileID: 2100000, guid: 4acb50527b76af149895be5f14f380ba, type: 2}
+    thumbnail: {fileID: 21300000, guid: 821d0ccb8516567459344451cbbe71db, type: 3}
+  - name: "C\xE2y C\u1EA3nh 2"
+    prefab: {fileID: 5412671953907213699, guid: 34245aec511433a4798a22b0fe9818a3,
+      type: 3}
+    availableMaterials:
+    - {fileID: 2100000, guid: 841b6376a3f41f742b55d6023b695695, type: 2}
+    thumbnail: {fileID: 21300000, guid: 821d0ccb8516567459344451cbbe71db, type: 3}
+  - name: "C\xE2y C\u1EA3nh 3"
+    prefab: {fileID: 713439608575959889, guid: 55ffa24e3700d2b499facb7be403179b, type: 3}
+    availableMaterials:
+    - {fileID: 2100000, guid: 608bb929fe62f6b4d8a091fbae66edce, type: 2}
+    thumbnail: {fileID: 21300000, guid: 821d0ccb8516567459344451cbbe71db, type: 3}
+  - name: "C\xE2y C\u1EA3nh 4"
+    prefab: {fileID: 2279690911602348664, guid: 4957878c598e6684e8520b5dcd808596,
+      type: 3}
+    availableMaterials:
+    - {fileID: 2100000, guid: d13abe422ef39f7438033e3c7944e635, type: 2}
+    thumbnail: {fileID: 21300000, guid: 821d0ccb8516567459344451cbbe71db, type: 3}
